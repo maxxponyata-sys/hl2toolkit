@@ -67,7 +67,7 @@ public sealed class PropProps : PropsBase
     public float Pitch { get => O.Ang[0]; set => Set(() => O.Ang[0] = value); }
     [Category("2. Положение"), DisplayName("Крен")]
     public float Roll { get => O.Ang[2]; set => Set(() => O.Ang[2] = value); }
-    [Category("2. Положение"), DisplayName("Масштаб"), Description("Работает для prop_static и prop_dynamic.")]
+    [Category("2. Положение"), DisplayName("Масштаб"), Description("Размер модели: 1 — оригинал, 2 — вдвое больше. Работает для всех типов. Масштабированный prop_static при сборке становится неподвижным prop_dynamic (так требует HL2). У физических предметов столкновения масштабирует сама игра.")]
     public float Scale { get => O.Scale; set => Set(() => O.Scale = Math.Clamp(value, 0.05f, 20)); }
     [Category("1. Общее"), DisplayName("Скин"), Description("Номер варианта раскраски модели (если есть).")]
     public int Skin { get => O.Skin; set => Set(() => O.Skin = Math.Max(0, value)); }

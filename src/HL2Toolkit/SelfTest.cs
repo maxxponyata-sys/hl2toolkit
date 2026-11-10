@@ -42,8 +42,8 @@ static class SelfTest
             for (int y = 0; y < t.Res; y++) for (int x = 0; x < t.Res; x++)
                     t.Heights[y * t.Res + x] = 300 * MathF.Exp(-((x - t.Res * 0.75f) * (x - t.Res * 0.75f) + (y - t.Res * 0.25f) * (y - t.Res * 0.25f)) / 40f);
             scene.Env.Water = true; scene.Env.Fog = true;
-            scene.Objects.Add(new SceneObject { Kind = ObjKind.Prop, Cls = "prop_physics", Model = "models/props_c17/oildrum001.mdl", Pos = new float[] { 128, 0, 0 } });
-            scene.Objects.Add(new SceneObject { Kind = ObjKind.Prop, Cls = "prop_static", Model = "models/props_c17/fence01a.mdl", Pos = new float[] { 0, 256, 0 }, Ang = new float[] { 0, 30, 0 } });
+            scene.Objects.Add(new SceneObject { Kind = ObjKind.Prop, Cls = "prop_physics", Model = "models/props_c17/oildrum001.mdl", Pos = new float[] { 128, 0, 0 }, Scale = 2 });
+            scene.Objects.Add(new SceneObject { Kind = ObjKind.Prop, Cls = "prop_static", Model = "models/props_c17/fence01a.mdl", Pos = new float[] { 0, 256, 0 }, Ang = new float[] { 0, 30, 0 }, Scale = 1.5f });
             scene.Objects.Add(new SceneObject { Kind = ObjKind.Block, Material = "brick/brickwall001a", Pos = new float[] { -300, -300, 0 }, Size = new float[] { 256, 128, 192 }, Ang = new float[] { 0, 30, 0 } });
             scene.Objects.Add(new SceneObject { Kind = ObjKind.Entity, Cls = "npc_combine_s", Pos = new float[] { 400, 400, 8 }, Keys = new() { ["additionalequipment"] = "weapon_smg1" } });
             scene.Objects.Add(new SceneObject { Kind = ObjKind.Light, Cls = "light", Pos = new float[] { 0, 0, 128 } });

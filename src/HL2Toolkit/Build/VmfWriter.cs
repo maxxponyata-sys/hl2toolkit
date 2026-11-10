@@ -194,18 +194,27 @@ public static class VmfWriter
             switch (o.Kind)
             {
                 case ObjKind.Prop:
+                {
+                    // В HL2 масштаб понимает только игра (ключ modelscale у prop_physics / prop_dynamic).
+                    // VBSP из HL2 не умеет масштабировать prop_static, поэтому масштабированный
+                    // статичный предмет автоматически превращается в неподвижный prop_dynamic.
+                    bool scaled = Math.Abs(o.Scale - 1) > 1e-3;
+                    string cls = o.Cls == "prop_static" && scaled ? "prop_dynamic" : o.Cls;
                     keys.Add(("model", o.Model)); keys.Add(("angles", Ang(o.Ang))); keys.Add(("skin", o.Skin.ToString()));
-                    if (!string.IsNullOrEmpty(o.Name)) keys.Add(("targetname", SafeTarget(o.Name)));
-                    if (o.Cls == "prop_physics" || o.Cls == "prop_physics_multiplayer")
+                    if (cls != "prop_static" && !string.IsNullOrEmpty(o.Name)) keys.Add(("targetname", SafeTarget(o.Name)));
+                    if (cls == "prop_physics" || cls == "prop_physics_multiplayer")
                     { keys.Add(("spawnflags", "256")); keys.Add(("fademindist", "-1")); }
                     else
                     {
-                        keys.Add(("solid", "6")); keys.Add(("fademindist", "-1")); keys.Add(("fadescale", "1"));
-                        if (o.Cls == "prop_static" && Math.Abs(o.Scale - 1) > 1e-3) keys.Add(("uniformscale", N(o.Scale)));
-                        if (o.Cls == "prop_dynamic" && Math.Abs(o.Scale - 1) > 1e-3) keys.Add(("modelscale", N(o.Scale)));
+                        // у масштабированного prop_dynamic столкновения — по габаритам (они масштабируются вместе с моделью)
+                        keys.Add(("solid", cls == "prop_dynamic" && scaled ? "2" : "6"));
+                        keys.Add(("fademindist", "-1")); keys.Add(("fadescale", "1"));
+                        if (cls == "prop_dynamic") keys.Add(("DisableBoneFollowers", "1"));
                     }
-                    Entity(c, o.Cls, o.Pos, keys);
+                    if (scaled && cls != "prop_static") keys.Add(("modelscale", N(o.Scale)));
+                    Entity(c, cls, o.Pos, keys);
                     break;
+                }
                 case ObjKind.Entity:
                     if (o.Cls == "info_player_start") player = true;
                     keys.Add(("angles", Ang(o.Ang)));
