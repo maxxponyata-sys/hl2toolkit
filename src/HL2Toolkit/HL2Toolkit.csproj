@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AssemblyName>HL2Toolkit</AssemblyName>
+    <RootNamespace>HL2Toolkit</RootNamespace>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <Product>HL2 Toolkit</Product>
+    <Version>1.0.0</Version>
+    <NoWarn>CA1416;NETSDK1057;WFO1000;WFDEV005;SYSLIB0050</NoWarn>
+  </PropertyGroup>
+
+</Project>
