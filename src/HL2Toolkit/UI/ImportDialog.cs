@@ -117,9 +117,9 @@ public sealed class ImportDialog : Form
     void Accept()
     {
         if (_obj == null) { PickObj(); return; }
-        if (_obj.Tris.Count / 24 > 60000)
+        if (_obj.Tris.Count / 24 > 200000)
         {
-            MessageBox.Show(this, "Слишком много треугольников для одной модели Source (больше 60 000). Упростите модель (Decimate в Blender).", "Импорт", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Слишком много треугольников для одной модели Source (больше 200 000). Упростите модель (Decimate в Blender).", "Импорт", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
         Bitmap tex = null;

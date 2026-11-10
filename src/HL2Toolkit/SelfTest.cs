@@ -36,6 +36,33 @@ static class SelfTest
                 L($"imported {mdl}: tris={mm?.Indices.Length / 3} h={mm?.Maxs[2] - mm?.Mins[2]}");
             }
 
+            if (args.Contains("--bigimport"))
+            {
+                // ~56 000 треугольников с уникальными UV в каждом углу — как тяжёлая модель автобуса
+                var rnd = new Random(1);
+                var tris = new List<float>();
+                int nx = 160, ny = 175;
+                // «плоские» нормали (своя у каждого угла), но общие UV — типичный экспорт тяжёлой модели
+                void V(int px, int py) => tris.AddRange(new float[] { px, py, MathF.Sin(px * 0.3f) * 4 + 4, rnd.NextSingle() - 0.5f, rnd.NextSingle() - 0.5f, 1, px / (float)nx, py / (float)ny });
+                for (int y = 0; y < ny; y++)
+                    for (int x = 0; x < nx; x++)
+                    {
+                        V(x, y); V(x + 1, y); V(x + 1, y + 1);
+                        V(x, y); V(x + 1, y + 1); V(x, y + 1);
+                    }
+                var big = Toolchain.ImportModel(new Toolchain.ImportRequest { Name = "selftest_big", Tris = tris }, L, CancellationToken.None);
+                var bm = Mdl.Load(new GameFS(gi.GameDir), big);
+                L($"BIG imported {big}: tris={bm?.Indices.Length / 3} (source {tris.Count / 24})");
+                // уникальные UV в каждом углу: сглаживание не поможет, нужна нарезка на части
+                var tris2 = new List<float>();
+                for (int i = 0; i < 30000 * 3; i++)
+                    tris2.AddRange(new float[] { i % 300, i / 300 % 300, i % 7, 0, 0, 1, rnd.NextSingle(), rnd.NextSingle() });
+                var big2 = Toolchain.ImportModel(new Toolchain.ImportRequest { Name = "selftest_big2", Tris = tris2 }, L, CancellationToken.None);
+                var bm2 = Mdl.Load(new GameFS(gi.GameDir), big2);
+                L($"BIG2 imported {big2}: tris={bm2?.Indices.Length / 3} (source {tris2.Count / 24})");
+                return 0;
+            }
+
             var scene = Scene.CreateDefault();
             scene.Name = "tk_selftest";
             var t = scene.Terrain;

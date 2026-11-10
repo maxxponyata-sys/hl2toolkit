@@ -247,6 +247,40 @@ public static class Toolchain
         File.WriteAllText(path, sb.ToString());
     }
 
+    /// <summary>Ключ вершины так, как её различает studiomdl (с округлением).</summary>
+    static (int, int, int, int, int, int, int, int) VertKey(List<float> t, int o) =>
+        ((int)MathF.Round(t[o] * 100), (int)MathF.Round(t[o + 1] * 100), (int)MathF.Round(t[o + 2] * 100),
+         (int)MathF.Round(t[o + 3] * 1000), (int)MathF.Round(t[o + 4] * 1000), (int)MathF.Round(t[o + 5] * 1000),
+         (int)MathF.Round(t[o + 6] * 10000), (int)MathF.Round(t[o + 7] * 10000));
+
+    static int CountUniqueVerts(List<float> t)
+    {
+        var set = new HashSet<(int, int, int, int, int, int, int, int)>();
+        for (int o = 0; o < t.Count; o += 8) set.Add(VertKey(t, o));
+        return set.Count;
+    }
+
+    /// <summary>Общая (усреднённая) нормаль для углов с одинаковой позицией и UV — убирает «плоские» дубли вершин.</summary>
+    static void SmoothNormals(List<float> t)
+    {
+        var sum = new Dictionary<(int, int, int, int, int), (float x, float y, float z)>();
+        (int, int, int, int, int) K(int o) => ((int)MathF.Round(t[o] * 100), (int)MathF.Round(t[o + 1] * 100), (int)MathF.Round(t[o + 2] * 100),
+                                              (int)MathF.Round(t[o + 6] * 10000), (int)MathF.Round(t[o + 7] * 10000));
+        for (int o = 0; o < t.Count; o += 8)
+        {
+            var k = K(o);
+            sum.TryGetValue(k, out var s);
+            sum[k] = (s.x + t[o + 3], s.y + t[o + 4], s.z + t[o + 5]);
+        }
+        for (int o = 0; o < t.Count; o += 8)
+        {
+            var s = sum[K(o)];
+            float l = MathF.Sqrt(s.x * s.x + s.y * s.y + s.z * s.z);
+            if (l < 1e-6f) continue;
+            t[o + 3] = s.x / l; t[o + 4] = s.y / l; t[o + 5] = s.z / l;
+        }
+    }
+
     static List<float> BoxTris(float[] mn, float[] mx)
     {
         float[][] c =
@@ -286,14 +320,54 @@ public static class Toolchain
         float[] mn = { float.MaxValue, float.MaxValue, float.MaxValue }, mx = { float.MinValue, float.MinValue, float.MinValue };
         for (int i = 0; i < r.Tris.Count; i += 8)
             for (int k = 0; k < 3; k++) { mn[k] = Math.Min(mn[k], r.Tris[i + k]); mx[k] = Math.Max(mx[k], r.Tris[i + k]); }
-        WriteSmd(Path.Combine(folder, "ref.smd"), r.Tris, name);
+        // Лимиты studiomdl (проверены опытным путём на studiomdl из HL2):
+        //  • в одном SMD не больше ~65 000 уникальных вершин, иначе «too many indices in source»;
+        //  • во всей модели не больше ~120 000 уникальных вершин, иначе studiomdl падает.
+        // Уникальная вершина = своя позиция + нормаль + UV. Делим модель на части по уникальным вершинам.
+        const int Floats = 24, MaxPartVerts = 60000, MaxModelVerts = 120000;
+        int totalTris = r.Tris.Count / Floats;
+        int unique = CountUniqueVerts(r.Tris);
+        log($"Треугольников: {totalTris}, уникальных вершин: {unique}");
+        if (unique > MaxModelVerts)
+        {
+            SmoothNormals(r.Tris);
+            int after = CountUniqueVerts(r.Tris);
+            log($"Вершин больше лимита Source ({MaxModelVerts}) — нормали сглажены, теперь вершин: {after}");
+            unique = after;
+        }
+        if (unique > MaxModelVerts)
+        {
+            int target = (int)(totalTris * (MaxModelVerts * 0.9 / unique));
+            throw new Exception($"Модель слишком детальная для Source: {unique} уникальных вершин при лимите около {MaxModelVerts}. " +
+                $"Упростите её (в Blender: модификатор Decimate) примерно до {target / 1000 * 1000} треугольников и импортируйте снова.");
+        }
+        foreach (var old in Directory.GetFiles(folder, "ref*.smd")) File.Delete(old);
+        int parts = 0, partStart = 0;
+        var seen = new HashSet<(int, int, int, int, int, int, int, int)>();
+        for (int t = 0; t <= totalTris; t++)
+        {
+            bool flush = t == totalTris;
+            if (!flush)
+            {
+                int added = 0;
+                for (int c = 0; c < 3; c++) if (!seen.Contains(VertKey(r.Tris, (t * 3 + c) * 8))) added++;
+                flush = seen.Count + added > MaxPartVerts;
+            }
+            if (flush && t > partStart)
+            {
+                WriteSmd(Path.Combine(folder, $"ref{parts}.smd"), r.Tris.GetRange(partStart * Floats, (t - partStart) * Floats), name);
+                parts++; partStart = t; seen.Clear();
+            }
+            if (t < totalTris) for (int c = 0; c < 3; c++) seen.Add(VertKey(r.Tris, (t * 3 + c) * 8));
+        }
         WriteSmd(Path.Combine(folder, "phys.smd"), BoxTris(mn, mx), "phys");
-        log($"Треугольников: {r.Tris.Count / 24}, высота {mx[2] - mn[2]:0} юнитов");
+        log($"Частей модели: {parts}, высота {mx[2] - mn[2]:0} юнитов");
 
         var qc = new StringBuilder();
-        qc.Append($"$modelname \"hl2toolkit/{name}.mdl\"\n$cdmaterials \"models/hl2toolkit\"\n$body body \"ref.smd\"\n$surfaceprop \"{r.Surface}\"\n");
+        qc.Append($"$modelname \"hl2toolkit/{name}.mdl\"\n$cdmaterials \"models/hl2toolkit\"\n$surfaceprop \"{r.Surface}\"\n");
+        for (int p = 0; p < parts; p++) qc.Append($"$body part{p} \"ref{p}.smd\"\n");
         if (!r.Physics) qc.Append("$staticprop\n");
-        qc.Append("$sequence idle \"ref.smd\" loop fps 1\n");
+        qc.Append("$sequence idle \"ref0.smd\" loop fps 1\n");
         qc.Append($"$collisionmodel \"phys.smd\"\n{{\n\t$mass {F(r.Mass)}\n}}\n");
         string qcPath = Path.Combine(folder, name + ".qc");
         File.WriteAllText(qcPath, qc.ToString());

@@ -27,7 +27,7 @@ public static class Mdl
     static int I(byte[] b, int o) => BitConverter.ToInt32(b, o);
     static float F(byte[] b, int o) => BitConverter.ToSingle(b, o);
 
-    public static MeshData Load(GameFS fs, string mdlPath, int maxTris = 30000)
+    public static MeshData Load(GameFS fs, string mdlPath, int maxTris = 150000)
     {
         mdlPath = GameFS.Norm(mdlPath);
         string bas = mdlPath[..^4];

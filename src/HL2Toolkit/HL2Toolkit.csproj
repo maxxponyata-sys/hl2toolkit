@@ -13,7 +13,7 @@
     <RootNamespace>HL2Toolkit</RootNamespace>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <Product>HL2 Toolkit</Product>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <NoWarn>CA1416;NETSDK1057;WFO1000;WFDEV005;SYSLIB0050</NoWarn>
   </PropertyGroup>
 
